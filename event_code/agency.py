@@ -5,8 +5,8 @@ from employees import add_employee, get_employees, update_employee, delete_emplo
 from globals import database_name
 
 def create_database():
-    cursor = conn.cursor()
     conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
 
     # Таблица "events" (мероприятия)
     cursor.execute('''
