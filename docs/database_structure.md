@@ -8,7 +8,7 @@
 
   **Поле**               **Комментарий**              **Тип*
 event_id               Идентификатор                INTEGER PRIMARY KEY
-event_title            Заголово                     TEXT
+event_title            Заголовок                    TEXT
 event_synopsis         Описание                     TEXT
 event_start_dt         Дата время начала            TEXT
 event_final_dt         Дата время окончания         TEXT
