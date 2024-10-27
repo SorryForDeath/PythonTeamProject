@@ -6,13 +6,13 @@ from db_module import handle_db_error, open_connection, close_connection, get_co
 
 def main_menu():
     while True:
-        print("\n=== Управление событиями ===")
+        print("\n=== Главное меню ===")
         print("1 - События")
         print("2 - Посетители")
         print("3 - Сотрудники")
         print("4 - Отчеты")
         print("5 - Тест для демонстрации")
-        print("6 - Выход")
+        print("0 - Выход")
         
         choice = input("Выберите действие: ")
         if choice == "1":
@@ -25,7 +25,7 @@ def main_menu():
             print("Раздел 'Отчеты' пока не реализован.")
         elif choice == "5":
             print("Тестовая демонстрация пока не реализована.")
-        elif choice == "6":
+        elif choice == "0":
             print("Выход из программы.")
             close_connection()
             sys.exit()

@@ -4,10 +4,10 @@ from db_module import *
 # Константы
 # Сообщения и приглашения
 MAIN_PROMPT = '''
-    Выберите вид отчета:
-1 - По событиям
-2 - По гостям
-0 - Вернуться в предыдущее меню
+=== Меню "Отчеты" ===
+1 - Отчет по событиям
+2 - Отчет по гостям
+0 - Вернуться в Главное меню
 '''
 INPUT_PROMPT = "Выберите действие: "
 SELECT_EVENTS_PROMPT = "Введите команду (1 - сохранить, 0 - выход): "
@@ -71,12 +71,13 @@ def report_events():
     return
 
 open_connection()
-conn = sqlite3.connect(db_name)
+# conn = sqlite3.connect(db_name)
+conn = get_connection()
 db_cursor = conn.cursor()
 # db_cursor.execute("PRAGMA table_info('tickets')")
 # tickets_fields = db_cursor.fetchall()
 # print(*tickets_fields)
 
 reports_menu()
-conn.close()
+# conn.close()
 close_connection()
