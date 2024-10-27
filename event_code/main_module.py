@@ -3,6 +3,7 @@ import sys
 from db_module import add_records, get_records, update_records, delete_records
 from db_module import input_add_record, input_update_record
 from db_module import handle_db_error, open_connection, close_connection, get_connection, tables, is_number, got_yes
+from reports_module import reports_menu
 
 def main_menu():
     while True:
@@ -22,7 +23,7 @@ def main_menu():
         elif choice == "3":
             employees_menu()
         elif choice == "4":
-            print("Раздел 'Отчеты' пока не реализован.")
+            reports_menu()
         elif choice == "5":
             print("Тестовая демонстрация пока не реализована.")
         elif choice == "0":
