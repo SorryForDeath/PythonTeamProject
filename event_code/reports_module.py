@@ -7,14 +7,15 @@ MAIN_PROMPT = '''
     Выберите вид отчета:
 1 - По событиям
 2 - По гостям
-3 - Вернуться в предыдущее меню
+0 - Вернуться в предыдущее меню
 '''
 INPUT_PROMPT = "Выберите действие: "
-SELECT_EVENT_PROMPT = "Выберите событие (0 - выход): "
+SELECT_EVENTS_PROMPT = "Введите команду (1 - сохранить, 0 - выход): "
 UNEXPECTED_INPUT = "Неверный выбор. Попробуйте снова."
 EVENT_VALUE_ERROR = "Ошибка: событие должно быть целым числом."
 EVENT_RANGE_ERROR = "События под таким номером не существует."
 EVENT_TABLE_ERROR = "События отсутствуют."
+EVENT_ID = 0
 EVENT_TITLE = 1
 EVENT_BUDGET = 7
 TICKET_VISITOR_ID = 2
@@ -28,7 +29,7 @@ def reports_menu():
         match choice:
             case "1":
                 report_events()
-            case "3":
+            case "0":
                 return
             case _:
                 print(UNEXPECTED_INPUT)
@@ -38,38 +39,36 @@ def report_events():
     if len(events) == 0: # Нет событий
         print(EVENT_TABLE_ERROR)
         return
+    max_title_length = max(len(event[EVENT_TITLE]) for event in events)
     while True:
-        # Выводим список событий
-        [print(event) for event in events]
-        user_input = input(SELECT_EVENT_PROMPT)
-        if user_input == "0": # Выбрали выход
-            return
-        try:
-            user_event_id = int(user_input)
-            # Проверяем диапазон
-            if not (0 < user_event_id <= len(events)):
-                print(EVENT_RANGE_ERROR)
-                continue
-            # Индекс события в списке событий
-            index = user_event_id - 1
+        print("ОТЧЕТ ПО СОБЫТИЯМ")
+        headers = f"{'НАЗВАНИЕ':<{max_title_length}} {'РАСХОДЫ':<10} {'БИЛЕТОВ':<7} {'ПРОДАНО':<7} {'ДОХОД':<10}"
+        print("-" * len(headers))
+        print(headers)
+        print("-" * len(headers))
+        # Выводим отчет по всем событиям
+        for event in events:
             # Берем билеты, связанные с событием
-            db_cursor.execute(f"SELECT * FROM tickets WHERE ticket_event_id={user_event_id}")
+            db_cursor.execute(f"SELECT * FROM tickets WHERE ticket_event_id={event[EVENT_ID]}")
             tickets = db_cursor.fetchall()
-            # Проданные билеты, то есть связанные с каким-то посетителем
+            # Проданные билеты, то есть связанные с каким-то посетителем, visitor_id не None
             sold_tickets = [ticket for ticket in tickets if ticket[TICKET_VISITOR_ID] is not None]
+            title = event[EVENT_TITLE]
+            budget = event[EVENT_BUDGET]
+            quantity = len(tickets)
+            sold = len(sold_tickets)
             # Суммируем проданные билеты
             revenue = sum(ticket[TICKET_PRICE] for ticket in sold_tickets)
             # Печатаем
-            print(F'''
-        Отчет по событию {events[index][EVENT_TITLE]}
-----------------------------------------
-Расходы: {events[index][EVENT_BUDGET]}
-Всего билетов: {len(tickets)}
-Продано: {len(sold_tickets)}
-Доход: {revenue}
-            ''')
-        except ValueError:
-            print(EVENT_VALUE_ERROR)
+            row = f"{title:<{max_title_length}} {budget:<10} {quantity:<7} {sold:<7} {revenue:<10}"
+            print(row)
+        user_input = input(SELECT_EVENTS_PROMPT)
+        if user_input == "0": # Выбрали выход
+            return
+        if user_input == "1"    :
+            print("Функция временно не работает.")
+            continue
+    return
 
 open_connection()
 conn = sqlite3.connect(db_name)
