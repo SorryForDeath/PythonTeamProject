@@ -40,25 +40,30 @@ def get_event_finance_info(event):
     Аргумент: информация о событии,
     Возвращаем список с финансовыми данными.
     '''
-    # Берем билеты, связанные с событием
+    # Берем из базы билеты, связанные с событием
     db_cursor.execute(f"SELECT * FROM tickets WHERE ticket_event_id={event[EVENT_ID]}")
     tickets = db_cursor.fetchall()
     # Проданные билеты, то есть связанные с каким-то посетителем, visitor_id не None
     sold_tickets = [ticket for ticket in tickets if ticket[TICKET_VISITOR_ID] is not None]
+    # Просто сокращаем, для читабельности
     title = event[EVENT_TITLE]
     budget = event[EVENT_BUDGET]
+    # Количество всех билетов
     quantity = len(tickets)
+    # Количество проданных
     sold = len(sold_tickets)
-    # Суммируем проданные билеты
+    # Доход - Суммируем цены проданных билетов
     revenue = sum(ticket[TICKET_PRICE] for ticket in sold_tickets)
-    return (title, budget, quantity, sold, revenue)
+    # Подсчитываем прибыль
+    profit = revenue - budget
+    return (title, budget, quantity, sold, revenue, profit)
 
 def save_to_csv(events):
     '''
     Запрашиваем имя CSV-файла и записываем данные.
     '''
 
-    the_report = [["НАЗВАНИЕ", "РАСХОДЫ", "БИЛЕТОВ", "ПРОДАНО", "ДОХОД"]]
+    the_report = [["НАЗВАНИЕ", "РАСХОДЫ", "БИЛЕТОВ", "ПРОДАНО", "ДОХОД", "ПРИБЫЛЬ"]]
 
     for event in events:
         the_report.append(get_event_finance_info(event))
@@ -71,7 +76,7 @@ def save_to_csv(events):
             with open(user_input, 'w', newline='', encoding='utf-8-sig') as file:
                 writer = csv.writer(file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerows(the_report)
-            print("Отчет сохранен в файл ", user_input)
+            print("Отчет сохранен в файл", user_input)
             print("-" * 30)
             return
         except FileNotFoundError:
@@ -88,16 +93,17 @@ def report_events():
     max_title_length = max(len(event[EVENT_TITLE]) for event in events)
     while True:
         print("ОТЧЕТ ПО СОБЫТИЯМ")
-        headers = f"{'НАЗВАНИЕ':<{max_title_length}} {'РАСХОДЫ':<10} {'БИЛЕТОВ':<7} {'ПРОДАНО':<7} {'ДОХОД':<10}"
+        headers = f"{'НАЗВАНИЕ':<{max_title_length}} {'РАСХОД':<10} {'БИЛЕТОВ':<5} {'ПРОДАЛ':<5} {'ДОХОД':<10} {'ПРИБЫЛЬ':<10}"
         print("-" * len(headers))
         print(headers)
         print("-" * len(headers))
         # Выводим отчет по всем событиям
         for event in events:
-            title, budget, quantity, sold, revenue = get_event_finance_info(event)
+            title, budget, quantity, sold, revenue, profit = get_event_finance_info(event)
             # Печатаем
-            row = f"{title:<{max_title_length}} {budget:<10} {quantity:<7} {sold:<7} {revenue:<10}"
+            row = f"{title:<{max_title_length}} {budget:<10} {quantity:<5} {sold:<5} {revenue:<10} {profit:<10}"
             print(row)
+        print("-" * len(headers))
         user_input = input(SELECT_EVENTS_PROMPT)
         if user_input == "0": # Выбрали выход
             return
