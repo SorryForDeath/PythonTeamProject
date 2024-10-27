@@ -68,17 +68,6 @@ tables = {
         "employee_position": {
             "type": "TEXT"
         },
-        "employee_login": {
-            "type": "TEXT"
-        },
-        "employee_passwd": {
-            "type": "TEXT"
-        },
-        "employee_access_level": {
-            "type": "INTEGER",
-            "min": 0,  # Минимальное значение для уровня доступа
-            "max": 3  # Максимальное значение для уровня доступа
-        },
         "employee_comment": {
             "type": "TEXT"
         }
@@ -144,7 +133,7 @@ def close_connection():
 def get_connection():
     return connection
 
-# Функция для обработки ошибок
+# Функция для обработки ошибок работы с БД
 def handle_db_error(error):
     if isinstance(error, sqlite3.OperationalError):
         print(f"OperationalError: {error}")
@@ -459,3 +448,7 @@ def is_number(data, num_type, min_value=None, max_value=None):
 
     return result
 
+def got_yes():
+    # выводит сообщение на подтверждение удаления записи и возвращает 1, если нажата "д" или "Д"
+    confirmation = input("Подтвердите удаление (д/н): ").strip().lower()
+    return confirmation == 'д'
