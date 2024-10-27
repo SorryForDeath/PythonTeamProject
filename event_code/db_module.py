@@ -2,8 +2,10 @@ import sqlite3
 from datetime import datetime
 
 
-# Имя базы данных
+# имя базы данных
 db_name = 'event_database.db'
+# переменная для соединения
+connection = None
 
 # Описание структуры таблиц в словаре
 tables = {
@@ -66,17 +68,6 @@ tables = {
         "employee_position": {
             "type": "TEXT"
         },
-        "employee_login": {
-            "type": "TEXT"
-        },
-        "employee_passwd": {
-            "type": "TEXT"
-        },
-        "employee_access_level": {
-            "type": "INTEGER",
-            "min": 0,  # Минимальное значение для уровня доступа
-            "max": 3  # Максимальное значение для уровня доступа
-        },
         "employee_comment": {
             "type": "TEXT"
         }
@@ -105,8 +96,6 @@ tables = {
     }
 }
 
-# Глобальная переменная для соединения
-connection = None
 
 # Создание таблиц на основе структуры данных
 def create_tables():
@@ -129,7 +118,22 @@ def create_tables():
     
     cursor.close()
 
-# Функция для обработки ошибок
+# Функция для инициализации базы данных
+def open_connection():
+    global connection
+    connection = sqlite3.connect(db_name)
+    create_tables()  # Создаем таблицы
+
+# Закрытие соединения с базой данных
+def close_connection():
+    if connection:
+        connection.close()
+
+# для передачи connection в другие модули
+def get_connection():
+    return connection
+
+# Функция для обработки ошибок работы с БД
 def handle_db_error(error):
     if isinstance(error, sqlite3.OperationalError):
         print(f"OperationalError: {error}")
@@ -414,16 +418,37 @@ def input_update_record(table_name):
             print("Ошибка при обновлении записи.")
     else:
         print("Изменения не были внесены.")
-# Функция для инициализации базы данных
-def open_connection():
-    global connection
-    connection = sqlite3.connect(db_name)
-    create_tables()  # Создаем таблицы
 
-# Закрытие соединения с базой данных
-def close_connection():
-    if connection:
-        connection.close()
+def is_number(data, num_type, min_value=None, max_value=None):
+    # проверяет строку или список строк на число заданного типа в заданном диапазоне
+    # возвращает список в виде чисел, прошедших проверку
+    if isinstance(data, str):
+        data = [data]  # Преобразуем строку в список для унифицированной обработки
 
+    result = []
+    for item in data:
+        try:
+            # Приводим данные к указанному типу (int или float)
+            number = num_type(item)
+            
+            # Проверяем диапазон значений, если он указан
+            if min_value is not None and number < min_value:
+                # print(f"Ошибка: значение {number} меньше минимально допустимого ({min_value}).")
+                continue
+            if max_value is not None and number > max_value:
+                # print(f"Ошибка: значение {number} больше максимально допустимого ({max_value}).")
+                continue
 
+            # Если проверка прошла, добавляем число в результат
+            result.append(number)
+        
+        except ValueError:
+            # print(f"Ошибка: '{item}' не является допустимым числом типа {num_type.__name__}.")
+            continue
 
+    return result
+
+def got_yes():
+    # выводит сообщение на подтверждение удаления записи и возвращает 1, если нажата "д" или "Д"
+    confirmation = input("Подтвердите удаление (д/н): ").strip().lower()
+    return confirmation == 'д'
