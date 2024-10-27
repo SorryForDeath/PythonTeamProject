@@ -1,4 +1,5 @@
 import sqlite3
+import csv
 from db_module import *
 
 # Константы
@@ -34,6 +35,51 @@ def reports_menu():
             case _:
                 print(UNEXPECTED_INPUT)
 
+def get_event_finance_info(event):
+    '''
+    Аргумент: информация о событии,
+    Возвращаем список с финансовыми данными.
+    '''
+    # Берем билеты, связанные с событием
+    db_cursor.execute(f"SELECT * FROM tickets WHERE ticket_event_id={event[EVENT_ID]}")
+    tickets = db_cursor.fetchall()
+    # Проданные билеты, то есть связанные с каким-то посетителем, visitor_id не None
+    sold_tickets = [ticket for ticket in tickets if ticket[TICKET_VISITOR_ID] is not None]
+    title = event[EVENT_TITLE]
+    budget = event[EVENT_BUDGET]
+    quantity = len(tickets)
+    sold = len(sold_tickets)
+    # Суммируем проданные билеты
+    revenue = sum(ticket[TICKET_PRICE] for ticket in sold_tickets)
+    return (title, budget, quantity, sold, revenue)
+
+def save_to_csv(events):
+    '''
+    Запрашиваем имя CSV-файла и записываем данные.
+    '''
+
+    the_report = [["НАЗВАНИЕ", "РАСХОДЫ", "БИЛЕТОВ", "ПРОДАНО", "ДОХОД"]]
+
+    for event in events:
+        the_report.append(get_event_finance_info(event))
+
+    while True:
+        user_input = input("Введите имя CSV-файла (0 - для выхода): ")
+        if user_input == "0":
+            return
+        try:
+            with open(user_input, 'w', newline='', encoding='utf-8-sig') as file:
+                writer = csv.writer(file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                writer.writerows(the_report)
+            print("Отчет сохранен в файл ", user_input)
+            print("-" * 30)
+            return
+        except FileNotFoundError:
+            print("Ошибка: файл не найден. Проверьте путь и попробуйте снова.")
+        except Exception as err:
+            print("Ошибка записи в файл: ", err)
+    return
+
 def report_events():
     events = get_records('events')
     if len(events) == 0: # Нет событий
@@ -48,25 +94,15 @@ def report_events():
         print("-" * len(headers))
         # Выводим отчет по всем событиям
         for event in events:
-            # Берем билеты, связанные с событием
-            db_cursor.execute(f"SELECT * FROM tickets WHERE ticket_event_id={event[EVENT_ID]}")
-            tickets = db_cursor.fetchall()
-            # Проданные билеты, то есть связанные с каким-то посетителем, visitor_id не None
-            sold_tickets = [ticket for ticket in tickets if ticket[TICKET_VISITOR_ID] is not None]
-            title = event[EVENT_TITLE]
-            budget = event[EVENT_BUDGET]
-            quantity = len(tickets)
-            sold = len(sold_tickets)
-            # Суммируем проданные билеты
-            revenue = sum(ticket[TICKET_PRICE] for ticket in sold_tickets)
+            title, budget, quantity, sold, revenue = get_event_finance_info(event)
             # Печатаем
             row = f"{title:<{max_title_length}} {budget:<10} {quantity:<7} {sold:<7} {revenue:<10}"
             print(row)
         user_input = input(SELECT_EVENTS_PROMPT)
         if user_input == "0": # Выбрали выход
             return
-        if user_input == "1"    :
-            print("Функция временно не работает.")
+        if user_input == "1": # Вывод в файл
+            save_to_csv(events)
             continue
     return
 
