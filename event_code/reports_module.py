@@ -70,14 +70,12 @@ def report_events():
             continue
     return
 
-open_connection()
-# conn = sqlite3.connect(db_name)
-conn = get_connection()
-db_cursor = conn.cursor()
-# db_cursor.execute("PRAGMA table_info('tickets')")
-# tickets_fields = db_cursor.fetchall()
-# print(*tickets_fields)
-
-reports_menu()
-# conn.close()
-close_connection()
+if __name__ == "__main__":
+    open_connection()
+    conn = get_connection()
+    db_cursor = conn.cursor()
+    # db_cursor.execute("PRAGMA table_info('tickets')")
+    # tickets_fields = db_cursor.fetchall()
+    # print(*tickets_fields)
+    reports_menu()
+    close_connection()
