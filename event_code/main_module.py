@@ -1,18 +1,37 @@
 import sys
 
 from db_module import add_records, get_records, update_records, delete_records
-from db_module import input_add_record, input_update_record
-from db_module import handle_db_error, open_connection, close_connection, get_connection, tables, is_number, got_yes
-from reports_module import reports_menu
+from db_module import add_new_record, update_one_record
+from db_module import handle_db_error, open_connection, close_connection, get_connection, tables, is_number
 
+# вспомогательные функции для обработки пользовательского ввода
+def id_input(hint, hint2 = 'Ошибка: ожидается положительное число или 0'):
+    # запрашивает у пользователя id записи бд
+    # проверяет ввод при помощи is_number, которая возвращает список чисел
+    # если список пуст, т.е. введено не целое число большее или равное нулю, выводит сообщение об ошибке и возвращает пустой список
+    # если ввод корректный, возвращает непустой список с введенным числом
+    # hint - строка-подсказка пользователю в операторе input
+    # hint2 - строка в сообщении об ошибке
+    id_str = input(hint).strip()
+    id_list = is_number(id_str, int, min_value=0)
+    if not id_list:
+        print(hint2)
+    return id_list
+
+def got_yes():
+    # выводит сообщение на подтверждение удаления записи и возвращает 1, если нажата "д" или "Д"
+    confirmation = input("Подтвердите удаление (д/н): ").strip().lower()
+    return confirmation == 'д'
+
+# меню программы
 def main_menu():
     while True:
-        print("\n=== Главное меню ===")
+        print("\n=== Event Manager ===")
         print("1 - События")
         print("2 - Посетители")
         print("3 - Сотрудники")
         print("4 - Отчеты")
-        print("5 - Тест для демонстрации")
+        # print("5 - Тест для демонстрации")
         print("0 - Выход")
         
         choice = input("Выберите действие: ")
@@ -23,13 +42,12 @@ def main_menu():
         elif choice == "3":
             employees_menu()
         elif choice == "4":
-            reports_menu()
-        elif choice == "5":
-            print("Тестовая демонстрация пока не реализована.")
+            print("Раздел 'Отчеты' пока не реализован.")
+        # elif choice == "5":
+            # print("Тестовая демонстрация пока не реализована.")
         elif choice == "0":
             print("Выход из программы.")
-            close_connection()
-            sys.exit()
+            break
         else:
             print("Неверный выбор. Попробуйте снова.")
 
@@ -42,7 +60,7 @@ def events_menu():
         print("4 - Удалить событие")
         print("5 - Добавить билеты")
         print("6 - Просмотреть билеты")
-        print("7 - В главное меню")
+        print("0 - В главное меню")
         
         choice = input("Выберите действие: ")
         if choice == "1":
@@ -57,7 +75,7 @@ def events_menu():
             add_tickets()
         elif choice == "6":
             view_tickets()
-        elif choice == "7":
+        elif choice == "0":
             return
         else:
             print("Неверный выбор. Попробуйте снова.")
@@ -72,7 +90,7 @@ def visitors_menu():
         print("5 - Продать билет")
         print("6 - Вернуть билет")
         print("7 - Просмотреть билеты")
-        print("8 - В главное меню")
+        print("0 - В главное меню")
         
         choice = input("Выберите действие: ")
         if choice == "1":
@@ -89,7 +107,7 @@ def visitors_menu():
             refund_ticket()
         elif choice == "7":
             view_tickets()
-        elif choice == "8":
+        elif choice == "0":
             return
         else:
             print("Неверный выбор. Попробуйте снова.")
@@ -102,7 +120,7 @@ def employees_menu():
         print("3 - Обновить данные сотрудника")
         print("4 - Удалить сотрудника")
         print("5 - Назначить сотрудника на событие")
-        print("6 - В главное меню")
+        print("0 - В главное меню")
         
         choice = input("Выберите действие: ")
         if choice == "1":
@@ -115,7 +133,7 @@ def employees_menu():
             delete_employee()
         elif choice == "5":
             assign_employee_to_event()
-        elif choice == "6":
+        elif choice == "0":
             return
         else:
             print("Неверный выбор. Попробуйте снова.")
@@ -123,37 +141,87 @@ def employees_menu():
 # функции, вызываемые по выбору пользователя в меню
 
 def add_event():
-    input_add_record("events")
-    event_id = last_event_id()
+    add_new_record('events')
+    event_id = last_id_in('events')
     if event_id:
         add_tickets_for_event(event_id)
 
-def last_event_id():
-    # возвращает id последнего события в таблице или 0
-    events = get_records("events")
-    if events:
-        return events[-1][0]  # Возвращаем ID последнего события
+def last_id_in(table):
+    # возвращает id последней записи в таблице table или 0
+    # считаем, что id хранится в нулевом поле записи и id автоинкрементируется
+    records = get_records(table)
+    if records:
+        return records[-1][0]  # Возвращаем ID последней записи
     else:
         return 0  # Если таблица пустая
 
 def view_events():
-    print("Просмотр событий")
     events = get_records('events')
-    [print(event) for event in events]
+    
+    # Заголовки таблицы
+    header = f"{'ID':<3} {'Название':<30} {'Дата начала':<16} {'Дата окончания':<16} {'Место проведения':<25}"
+    print(header)
+    print('-' * len(header))  # Разделительная линия
+    
+    # Вывод данных о событиях
+    for event in events:
+        event_id, title, synopsis, start_dt, final_dt, location, age_restriction, budget, comment = event
+        # Форматируем строки для выравнивания по столбцам
+        row = (
+            f"{event_id:<3} {title[:28]:<30} {start_dt:<16} {final_dt:<16} {location[:23]:<25}"
+        )
+        print(row)
+
+    # Запуск цикла для просмотра подробной информации по ID
+    while True:
+        # Запрос ID события для подробного просмотра
+        event_id_input = input("Введите id события для подробного просмотра или 0 для возврата: ").strip()
+        
+        # Проверка ввода на числовое значение
+        valid_id = is_number(event_id_input, int, min_value=0)
+        if not valid_id:
+            print("Ошибка: некорректный ID. Введите целое число 0 или больше.")
+            continue
+
+        event_id = valid_id[0]
+
+        # Завершение функции при вводе 0
+        if event_id == 0:
+            break
+
+        # Поиск события с введенным ID в списке events
+        event = next((e for e in events if e[0] == event_id), None)
+        if event is None:
+            print(f"Событие с ID {event_id} не найдено.")
+            continue
+
+        # Печать подробной информации о найденном событии
+        event_details = [
+            ("ID", event[0]),
+            ("Название", event[1]),
+            ("Описание", event[2]),
+            ("Дата начала", event[3]),
+            ("Дата окончания", event[4]),
+            ("Место проведения", event[5]),
+            ("Возрастное ограничение", event[6]),
+            ("Бюджет", f"{event[7]:.2f}"),
+            ("Комментарий", event[8])
+        ]
+        
+        print("\nПодробная информация о событии:")
+        for field_name, field_value in event_details:
+            print(f"{field_name:<20}: {field_value}")
+        print()  # Пустая строка для визуального разделения
 
 def update_event():
     print("Обновление события")
-    input_update_record('events')
+    update_one_record('events')
 
 def delete_event():
     while True:
         # 1. Запрашиваем ID удаляемого события и проверяем корректность ввода
-        event_id_input = input("Введите ID удаляемого события (или 0 для выхода): ").strip()
-        event_id = is_number(event_id_input, int, min_value=0)
-
-        # Проверка корректности ID и завершение при вводе 0
+        event_id = id_input("Введите ID удаляемого события (0 для выхода): ")
         if not event_id:
-            print("Ошибка: некорректный ID события.")
             continue
         event_id = event_id[0]
         if event_id == 0:
@@ -164,7 +232,10 @@ def delete_event():
         if not event_records:
             print(f"Событие с ID {event_id} не найдено.")
             continue
-        event_title = event_records[0][1]  # Название события (например, event_title)
+        event_title = event_records[0][1]  
+        print(event_title)
+        if not got_yes():
+            continue
 
         # Установка соединения с базой данных
         connection = get_connection()
@@ -195,7 +266,6 @@ def delete_event():
             handle_db_error(e)
             print(f"Ошибка при удалении события с ID {event_id}. Все изменения отменены.")
 
-
 def add_tickets_for_event(event_id):
     # добавляет билеты на мероприятие event_id 
     # вызывается из функций add_event и add_tickets
@@ -203,10 +273,8 @@ def add_tickets_for_event(event_id):
     total_tickets_added = 0
     while True:
         # Запрашиваем количество билетов для добавления на мероприятие event_id
-        ticket_count_input = input("Введите количество добавляемых билетов (введите 0 для завершения): ").strip()
-        ticket_count = is_number(ticket_count_input, int, min_value=0)
+        ticket_count = id_input("Введите количество добавляемых билетов (0 для завершения): ", "Ошибка: неверное количество билетов")
         if not ticket_count:
-            print("Ошибка: некорректное количество билетов.")
             continue
         ticket_count = ticket_count[0]
 
@@ -247,10 +315,8 @@ def add_tickets():
 
     while True:
         # 1. Запрашиваем ID мероприятия
-        event_id_input = input("Введите ID мероприятия, на которое будут добавлены билеты (или 0 для завершения): ").strip()
-        event_id = is_number(event_id_input, int, min_value=0)
+        event_id = id_input("Введите ID мероприятия, на которое будут добавлены билеты (0 для завершения): ")
         if not event_id:
-            print("Ошибка: некорректный ID мероприятия.")
             continue
 
         event_id = event_id[0]
@@ -264,6 +330,8 @@ def add_tickets():
             continue
 
         # 3. Если событие существует, вызываем add_tickets_for_event
+        event_title = event_records[0][1]
+        print(event_title)
         tickets_added_for_event = add_tickets_for_event(event_id)
         total_tickets_added += tickets_added_for_event
 
@@ -273,79 +341,78 @@ def add_tickets():
 
 def view_tickets():
     # Запрашиваем ID события
-    event_id_input = input("Введите ID события (или 0 для всех событий): ").strip()
-    event_id = is_number(event_id_input, int, min_value=0)
+    event_id = id_input("Введите ID события (или 0 для всех событий): ")
     if not event_id:
-        print("Ошибка: некорректный ID события.")
         return
     event_id = event_id[0]  # Извлекаем ID события или 0 для всех
 
-    # Формируем критерии поиска
-    criteria = {}
-    if event_id != 0:
-        criteria["ticket_event_id"] = event_id
-
-    # Получаем записи билетов, соответствующих критериям
+    # Формируем критерии поиска и получаем записи билетов
+    criteria = {"ticket_event_id": event_id} if event_id != 0 else {}
     tickets = get_records("tickets", criteria)
     if not tickets:
         print("Билеты не найдены.")
         return
 
-    # Словарь для накопления информации по каждому событию
+    # Словарь для суммарной информации по каждому событию
     event_summary = {}
     for ticket in tickets:
         event_id = ticket[1]  # ticket_event_id
         is_sold = ticket[2] is not None  # ticket_visitor_id
 
-        # Инициализация записи для события
+        # Инициализация записи для события при первом появлении
         if event_id not in event_summary:
-            # Получаем название события из таблицы events
-            event_records = get_records("events", {"event_id": event_id})
-            event_title = event_records[0][1] if event_records else "Неизвестно"
+            event_title = get_records("events", {"event_id": event_id})
+            event_title = event_title[0][1] if event_title else "Неизвестно"
+            event_summary[event_id] = {"event_title": event_title, "total": 0, "sold": 0, "unsold": 0}
 
-            event_summary[event_id] = {
-                "event_title": event_title,
-                "total_tickets": 0,
-                "sold_tickets": 0,
-                "unsold_tickets": 0
-            }
-
-        # Увеличиваем общее количество билетов для события
-        event_summary[event_id]["total_tickets"] += 1
-
-        # Увеличиваем количество проданных/непроданных билетов
+        # Подсчет общего числа и количества проданных/непроданных билетов
+        event_summary[event_id]["total"] += 1
         if is_sold:
-            event_summary[event_id]["sold_tickets"] += 1
+            event_summary[event_id]["sold"] += 1
         else:
-            event_summary[event_id]["unsold_tickets"] += 1
+            event_summary[event_id]["unsold"] += 1
 
-    # Вывод отчета с заголовком
-    print("\nID | Событие                 | Всего | Продано | Осталось")
-    print("-" * 50)
+    # Заголовок таблицы
+    header = f"{'ID':<3} {'Событие':<30} {'Всего':<8} {'Продано':<8} {'Осталось':<8}"
+    print(header)
+    print('-' * len(header))
+
+    # Форматированный вывод для каждого события
     for event_id, summary in event_summary.items():
-        print(f"{event_id:<2} | {summary['event_title']:<22} | {summary['total_tickets']:<5} | "
-              f"{summary['sold_tickets']:<7} | {summary['unsold_tickets']:<8}")
+        row = (
+            f"{event_id:<3} {summary['event_title'][:28]:<30} "
+            f"{summary['total']:<8} {summary['sold']:<8} {summary['unsold']:<8}"
+        )
+        print(row)
 
 def add_visitor():
-    input_add_record("visitors")
+    add_new_record('visitors')
+    # visitor_id = last_id_in('visitors')
 
 def view_visitors():
-    print("Просмотр посетителей")
     visitors = get_records('visitors')
-    [print(visitor) for visitor in visitors]
+    
+    # Заголовки таблицы
+    header = f"{'ID':<5} {'ФИО':<20} {'Email':<25} {'Телефон':<18}"
+    print(header)
+    print('-' * len(header))  # Разделительная линия
+    
+    # Вывод данных посетителей
+    for visitor in visitors:
+        visitor_id, full_name, email, phone = visitor
+        # Форматируем строки для выравнивания по столбцам
+        row = f"{visitor_id:<5} {full_name[:18]:<20} {email[:23]:<25} {phone:<18}"
+        print(row)
 
 def update_visitor():
     print("Обновление данных посетителя")
-    input_update_record('visitors')
+    update_one_record('visitors')
+
 def delete_visitor():
     while True:
         # 1. Запрашиваем ID удаляемого посетителя и проверяем корректность ввода
-        visitor_id_input = input("Введите ID удаляемого посетителя (или 0 для выхода): ").strip()
-        visitor_id = is_number(visitor_id_input, int, min_value=0)
-
-        # Проверка корректности ID и завершение при вводе 0
+        visitor_id = id_input("Введите ID удаляемого посетителя (0 для выхода): ")
         if not visitor_id:
-            print("Ошибка: некорректный ID посетителя.")
             continue
         visitor_id = visitor_id[0]
         if visitor_id == 0:
@@ -357,6 +424,9 @@ def delete_visitor():
             print(f"Посетитель с ID {visitor_id} не найден.")
             continue
         visitor_name = visitor_records[0][1]  # Имя посетителя
+        print(visitor_name )
+        if not got_yes():
+            continue
 
         # Установка соединения с базой данных
         connection = get_connection()
@@ -389,16 +459,13 @@ def delete_visitor():
 def sell_ticket():
     while True:
         # 1. Запрашиваем и проверяем ID посетителя
-        visitor_id_input = input("Введите ID посетителя (или 0 для завершения): ").strip()
-        visitor_id = is_number(visitor_id_input, int, min_value=0)
+        visitor_id = id_input("Введите ID посетителя (0 для завершения): ")
         if not visitor_id:
-            print("Ошибка: некорректный ID посетителя.")
             continue
         visitor_id = visitor_id[0]
 
         # Проверка на завершение
         if visitor_id == 0:
-            print("Завершение продажи билетов.")
             break
 
         # 2. Проверка наличия ID посетителя в базе данных
@@ -409,6 +476,7 @@ def sell_ticket():
 
         visitor = visitor_records[0]
         visitor_name = visitor[1]  # Имя посетителя
+        print(visitor_name)
 
         # 3. Запрашиваем и проверяем ID мероприятия
         event_id_input = input("Введите ID мероприятия: ").strip()
@@ -427,6 +495,7 @@ def sell_ticket():
         event = event_records[0]
         event_title = event[1]      # Название мероприятия
         event_start_dt = event[3]   # Дата начала мероприятия
+        print(event_title)
 
         # 5. Поиск первого непроданного билета для данного мероприятия
         connection = get_connection()
@@ -463,16 +532,13 @@ def sell_ticket():
 def refund_ticket():
     while True:
         # запрашиваем ID посетителя
-        visitor_id_input = input("Введите ID посетителя (или 0 для завершения): ").strip()
-        visitor_id = is_number(visitor_id_input, int, min_value=0)
+        visitor_id = id_input("Введите ID посетителя (0 для завершения): ")
         if not visitor_id:
-            print("Ошибка: Некорректный ID посетителя.")
             continue
         visitor_id = visitor_id[0]
 
         # Проверка на завершение
         if visitor_id == 0:
-            print("Завершение возврата билетов.")
             break
 
         # проверка наличия ID посетителя в базе данных
@@ -483,6 +549,7 @@ def refund_ticket():
 
         visitor = visitor_records[0]
         visitor_name = visitor[1]  # Имя посетителя
+        print(visitor_name)
 
         # запрашиваем ID мероприятия
         event_id_input = input("Введите ID мероприятия: ").strip()
@@ -495,7 +562,7 @@ def refund_ticket():
         # проверка наличия билета у пользователя на это мероприятие
         ticket_records = get_records("tickets", {"ticket_event_id": event_id, "ticket_visitor_id": visitor_id})
         if not ticket_records:
-            print(f"Ошибка: У посетителя с ID {visitor_id} нет билета на мероприятие с ID {event_id}.")
+            print(f"Ошибка: У посетителя {visitor_name} (ID {visitor_id}) нет билета на мероприятие с ID {event_id}.")
             continue
 
         # Данные о мероприятии и билете для вывода
@@ -507,6 +574,9 @@ def refund_ticket():
             continue
 
         event_title = event_records[0][1]
+        print(event_title)
+        if not got_yes():
+            continue
 
         # возврат билета - обнуление поля ticket_visitor_id
         connection = get_connection()
@@ -523,9 +593,11 @@ def refund_ticket():
             print(f"Ошибка при возврате билета: {e}")
 
 def add_employee():
-    input_add_record("employees")
+    add_new_record('employees')
+    # employee_id = last_id_in('employees')
 
 def view_employees():
+
     employees = get_records('employees')
     # Заголовки таблицы
     header = f"{'ID':<3} {'ФИО':<20} {'Должность':<15} {'Комментарий':<20}"
@@ -540,15 +612,14 @@ def view_employees():
 
 def update_employee():
     print("Обновление данных сотрудника")
-    input_update_record('employees')
+    update_one_record('employees')
+
 def delete_employee():
     print("Удаление сотрудника")
 
     # Шаг 1: Запросить ID сотрудника и проверить формат
-    employee_id_input = input("Введите ID сотрудника для удаления (0 для выхода): ").strip()
-    employee_id = is_number(employee_id_input, int, min_value=0)
+    employee_id = id_input("Введите ID сотрудника для удаления (0 для выхода): ")
     if not employee_id:
-        print("Ошибка: некорректный ID сотрудника.")
         return
     employee_id = employee_id[0]
     if employee_id  == 0:
@@ -598,10 +669,8 @@ def assign_employee_to_event():
     print("Назначение менеджера ответственным за мероприятие")
     
     # Шаг 1: Запросить ID менеджера и проверить формат
-    employee_id_input = input("Введите ID менеджера (0 для выхода): ").strip()
-    employee_id = is_number(employee_id_input, int, min_value=0)
+    employee_id = id_input("Введите ID менеджера (0 для выхода): ")
     if not employee_id:
-        print("Ошибка: некорректный ID менеджера.")
         return
     employee_id = employee_id[0]
     if employee_id  == 0:
@@ -652,6 +721,5 @@ def assign_employee_to_event():
 # main program
 
 open_connection()
-# insert_test_data()
 main_menu()
 close_connection()
