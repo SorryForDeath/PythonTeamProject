@@ -74,11 +74,7 @@ ticket_price           Цена                         REAL
 event_id               Идентификатор мероприятия    INTEGER
                                                     FOREIGN KEY (event_id) REFERENCES events(event_id)
 employee_id      Идентификатор сотрудника           INTEGER
-                                                    FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
-		
-Беседа № 3: 
-
-Вот переписанный текст в формате Markdown:
+                                                    FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 
 ## Диаграмма структурирования
 
